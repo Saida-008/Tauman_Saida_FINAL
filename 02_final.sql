@@ -18,7 +18,7 @@ begin
     end if;
 end $$;
 
--- PART 3: CREATE TABLES & CONSTRAINTS 
+-- ===== PART 3: CREATE TABLES & CONSTRAINTS =====
 
 create table public.customers (
     customer_id serial primary key,
@@ -76,7 +76,8 @@ create table public.order_items (
         references public.products(product_id) on delete restrict
 );
 
--- PART 4: ALTER TABLE OPERATIONS WITH BUSINESS REASONS 
+-- ===== PART 4: ALTER TABLE OPERATIONS WITH BUSINESS REASONS =====
+
 -- Business Reason: Expand phone number column length to accommodate international numbering formats (+7...)
 alter table public.customers alter column phone_number type varchar(25);
 
@@ -93,7 +94,7 @@ alter table public.categories rename column description to category_description;
 alter table public.customers add column middle_name varchar(50); 
 alter table public.customers drop column middle_name;
 
--- PART 5: INSERT DATA 
+-- ===== PART 5: INSERT DATA =====
 
 truncate table 
     public.order_items, 
@@ -150,4 +151,76 @@ insert into public.order_items (order_id, product_id, quantity, discount_amount)
     (select product_id from public.products where sku = 'SKIN-SERUM02'), 1, 0.00
 ),
 (
-    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'dana.s@example.kz') and order_date = '2026-03-10 1
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'dana.s@example.kz') and order_date = '2026-03-10 15:30:00'),
+    (select product_id from public.products where sku = 'MAKE-LIP01'), 1, 200.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'ivan.ivanov@example.kz') and order_date = '2026-04-12 18:20:00'),
+    (select product_id from public.products where sku = 'FRAG-PERF01'), 1, 3000.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'ivan.ivanov@example.kz') and order_date = '2026-04-12 18:20:00'),
+    (select product_id from public.products where sku = 'HAIR-SHAM01'), 1, 0.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'aiga.m@example.kz') and order_date = '2026-05-01 10:15:00'),
+    (select product_id from public.products where sku = 'MAKE-FOUND02'), 1, 0.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'aiga.m@example.kz') and order_date = '2026-05-01 10:15:00'),
+    (select product_id from public.products where sku = 'FRAG-MIST02'), 1, 500.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'dima.p@example.kz') and order_date = '2026-05-20 14:00:00'),
+    (select product_id from public.products where sku = 'HAIR-MASK02'), 1, 0.00
+),
+(
+    (select order_id from public.orders where customer_id = (select customer_id from public.customers where email = 'dima.p@example.kz') and order_date = '2026-05-20 14:00:00'),
+    (select product_id from public.products where sku = 'BODY-LOTION02'), 1, 0.00
+);
+
+-- Advanced INSERT ... SELECT Operation populating the junction table dynamically
+insert into public.order_items (order_id, product_id, quantity, discount_amount)
+select 
+    o.order_id, 
+    (select product_id from public.products where sku = 'BODY-SCRUB01'), 
+    1, 
+    4900.00
+from public.orders o
+join public.order_items oi on o.order_id = oi.order_id
+join public.products p on oi.product_id = p.product_id
+where p.category_id = (select category_id from public.categories where category_name = 'Haircare')
+on conflict (order_id, product_id) do nothing;
+
+-- ===== PART 6: UPDATE & DELETE WITH BUSINESS REASONS =====
+
+-- Business Reason (Simple UPDATE): Award 150 loyalty points to early customers registered before April 1st as part of a promotional campaign
+update public.customers
+set loyalty_points = loyalty_points + 150
+where registration_date < '2026-04-01 00:00:00';
+
+-- Business Reason (Subquery UPDATE): Apply an additional 10% unit-price discount on items belonging to active, unfulfilled Makeup orders
+update public.order_items
+set discount_amount = discount_amount + (0.10 * (select unit_price from public.products p where p.product_id = order_items.product_id))
+where product_id in (select product_id from public.products where category_id = (select category_id from public.categories where category_name = 'Makeup'))
+  and order_id in (select order_id from public.orders where status in ('pending', 'processing'));
+
+-- Business Reason (Transactional DELETE): Purge cancelled orders from active visibility while logging the removed data before executing a testing rollback
+begin;
+
+delete from public.orders 
+where status = 'cancelled'
+returning order_id, customer_id, order_date, status;
+
+rollback;
+
+-- ===== PART 7: PRIVILEGES WITH COMMENTS =====
+
+-- Business Reason: Grant read-only structural permissions on public schema to the analytical reporting role
+grant select on all tables in schema public to cosmetics_readonly;
+
+-- Business Reason: Grant write permissions on the orders table to the order management processing role
+grant insert, update on public.orders to cosmetics_writer;
+
+-- Business Reason: Revoke data modification permissions from the writer role to enforce data consistency controls
+revoke update on public.orders from cosmetics_writer;
