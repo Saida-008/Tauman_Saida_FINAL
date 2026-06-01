@@ -25,11 +25,11 @@ create table public.customers (
     customer_id serial primary key,
     first_name varchar(50) not null,
     last_name varchar(50) not null,
-    email varchar(100) not null constraint uq_customer_email unique, -- Check 1: Unique Constraint
+    email varchar(100) not null constraint uq_customer_email unique, 
     phone_number varchar(15),
-    delivery_address text not null, -- Check 2: Implicit NOT NULL Domain Check
+    delivery_address text not null, 
     registration_date timestamp default now() not null, -- Meaningful DEFAULT
-    constraint chk_registration_date check (registration_date > date '2026-01-01') -- Check 3: Date Boundary
+    constraint chk_registration_date check (registration_date > date '2026-01-01')
 );
 
 create table public.categories (
@@ -45,10 +45,10 @@ create table public.products (
     sku varchar(30) not null constraint uq_product_sku unique,
     unit_price numeric(10,2) not null,
     stock_quantity int not null,
-    constraint chk_unit_price check (unit_price >= 0.00), -- Check 4: Non-negative Check
+    constraint chk_unit_price check (unit_price >= 0.00), 
     constraint chk_stock_quantity check (stock_quantity >= 0),
     constraint fk_products_categories foreign key (category_id) 
-        references public.categories(category_id) on delete restrict -- Explicit ON DELETE Restrict
+        references public.categories(category_id) on delete restrict 
 );
 
 create table public.orders (
@@ -59,7 +59,7 @@ create table public.orders (
     constraint chk_order_status check (status in ('pending', 'processing', 'shipped', 'delivered', 'cancelled')), -- Check 5: Enumerated Check
     constraint chk_order_date check (order_date > date '2026-01-01'),
     constraint fk_orders_customers foreign key (customer_id) 
-        references public.customers(customer_id) on delete cascade -- Explicit ON DELETE Cascade
+        references public.customers(customer_id) on delete cascade 
 );
 
 create table public.order_items (
