@@ -26,10 +26,11 @@ create table public.customers (
     first_name varchar(50) not null,
     last_name varchar(50) not null,
     email varchar(100) not null constraint uq_customer_email unique, 
-    phone_number varchar(15),
+    phone_number varchar(25),
     delivery_address text not null, 
-    registration_date timestamp default now() not null, -- Meaningful DEFAULT
-    constraint chk_registration_date check (registration_date > date '2026-01-01')
+    registration_date timestamp default now() not null,
+    constraint chk_registration_date check (registration_date > date '2026-01-01'),
+    constraint chk_valid_phone_format check (phone_number ~ '^\+[0-9\s\-()]+$')
 );
 
 create table public.categories (
