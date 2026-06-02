@@ -122,7 +122,7 @@ restart identity cascade;
 
 -- SECTION 6: DATA INSERTS (DYNAMIC SCALAR SUBQUERIES)
 
-insert into public.categories (category_name, category_description) values
+insert into public.categories (category_name, description) values
 ('Skincare', 'Creams, serums, and cleansers for face care'),
 ('Haircare', 'Shampoos, conditioners, and hair masks'),
 ('Makeup', 'Foundations, lipsticks, and mascaras for beauty'),
