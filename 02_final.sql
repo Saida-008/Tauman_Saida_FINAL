@@ -1,4 +1,4 @@
--- SECTION 1: DATABASE RESET (REVERSE DEPENDENCY ORDER)
+-- SECTION 1: DATABASE RESET
 drop table if exists public.payments cascade;
 drop table if exists public.order_items cascade;
 drop table if exists public.orders cascade;
@@ -6,21 +6,20 @@ drop table if exists public.products cascade;
 drop table if exists public.categories cascade;
 drop table if exists public.customers cascade;
 
--- SECTION 2: ROLE CONFIGURATION
+-- SECTION 2: ROLE CONFIGURATION 
 do $$ 
 begin
-    -- Purpose: For analytical tools and business intelligence reporting. Read-only access.
+ -- Purpose: For analytical tools and business intelligence reporting. Read-only access.
     if not exists (select 1 from pg_roles where rolname = 'cosmetics_readonly') then
         create role cosmetics_readonly;
     end if;
-    -- Purpose: For backend application services to manage fulfillment workflows. Write access.
+	-- Purpose: For backend application services to manage fulfillment workflows. Write access.
     if not exists (select 1 from pg_roles where rolname = 'cosmetics_writer') then
         create role cosmetics_writer;
     end if;
 end $$;
 
--- SECTION 3: TABLE CREATION (STRICT 3NF & ALL 5 REQUIRED KINDS OF CHECKS)
-
+-- SECTION 3: TABLE CREATION 
 create table public.customers (
     customer_id serial primary key,
     first_name varchar(50) not null,
@@ -47,7 +46,7 @@ create table public.products (
     sku varchar(30) not null constraint uq_product_sku unique,
     unit_price numeric(10,2) not null,
     stock_quantity int not null,
-    constraint chk_unit_price check (unit_price >= 0.00), -- Check Kind 4: Non-negative value
+    constraint chk_unit_price check (unit_price >= 0.00),  -- Check Kind 4: Non-negative value
     constraint fk_products_categories foreign key (category_id) 
         references public.categories(category_id) on delete restrict 
 );
@@ -57,7 +56,7 @@ create table public.orders (
     customer_id int not null,
     order_date timestamp default now() not null,
     status varchar(20) default 'pending' not null,
-    constraint chk_order_status check (status in ('pending', 'processing', 'shipped', 'delivered', 'cancelled')), -- Check Kind 5: Enumerated array
+    constraint chk_order_status check (status in ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
     constraint chk_order_date check (order_date > date '2026-01-01'),
     constraint fk_orders_customers foreign key (customer_id) 
         references public.customers(customer_id) on delete cascade 
@@ -78,14 +77,13 @@ create table public.order_items (
         references public.products(product_id) on delete restrict
 );
 
--- NEW 6TH TABLE: Achieves explicit operational separation of business concerns.
 create table public.payments (
     payment_id serial primary key,
     order_id int not null constraint uq_payment_order unique,
     payment_date timestamp default now() not null,
     amount numeric(10,2) not null,
     payment_method varchar(30) default 'card' not null,
-    payment_status varchar(20) default 'completed' not null, -- Диаграммадағыдай баған бірден қосылды
+    payment_status varchar(20) default 'completed' not null, 
     constraint chk_payment_amount check (amount > 0.00),
     constraint chk_payment_date check (payment_date > date '2026-01-01'),
     constraint chk_payment_method check (payment_method in ('card', 'cash', 'qr_code')),
@@ -93,24 +91,19 @@ create table public.payments (
         references public.orders(order_id) on delete cascade
 );
 
--- SECTION 4: ALTER TABLE STATEMENTS (5 DISTINCT OPERATIONS)
-
+-- SECTION 4: ALTER TABLE STATEMENTS (ҚҰРЫЛЫМДЫ ӨЗГЕРТУ)
 -- Alter 1: Increase structural capacity to safely handle long international phone strings.
 alter table public.customers alter column phone_number type varchar(35);
-
 -- Alter 2: Append marketing analytical attributes to fuel corporate CRM loyalty mechanics.
 alter table public.customers add column loyalty_points int default 0 not null;
-
 -- Alter 3: Secure the database with integrity logic so application layer bugs cannot corrupt balances.
 alter table public.customers add constraint chk_loyalty_points check (loyalty_points >= 0);
-
 -- Alter 4: Standardize schema layouts against structural keywords by refining naming patterns.
 alter table public.categories rename column description to category_description;
-
 -- Alter 5: Add data validation check constraint to the payment status lifecycle.
 alter table public.payments add constraint chk_payment_status check (payment_status in ('pending', 'completed', 'failed', 'refunded'));
 
--- SECTION 5: RE-RUNNABLE RESET
+-- SECTION 5: RE-RUNNABLE RESET 
 truncate table 
     public.payments,
     public.order_items, 
@@ -120,8 +113,7 @@ truncate table
     public.customers 
 restart identity cascade;
 
--- SECTION 6: DATA INSERTS (DYNAMIC SCALAR SUBQUERIES)
-
+-- SECTION 6: DATA INSERTS
 insert into public.categories (category_name, category_description) values
 ('Skincare', 'Creams, serums, and cleansers for face care'),
 ('Haircare', 'Shampoos, conditioners, and hair masks'),
@@ -131,11 +123,11 @@ insert into public.categories (category_name, category_description) values
 ('Tools', 'Makeup brushes, sponges, and mirrors');
 
 insert into public.customers (first_name, last_name, email, phone_number, delivery_address, registration_date) values
-('Saida', 'Askarova', 'ali.askarov@example.kz', '+77011112233', 'Abay Ave 45, Almaty', '2026-02-15 10:00:00'),
-('Dana', 'Serikova', 'dana.s@example.kz', '+77023334455', 'Mangilik El 12, Astana', '2026-03-01 11:30:00'),
-('Beknaz', 'Turegalieva', 'ivan.ivanov@example.kz', '+77056667788', 'Kabanbay Batyr 8, Astana', '2026-03-20 14:15:00'),
-('Aigerim', 'Muratova', 'aiga.m@example.kz', '+77078889900', 'Satpayev St 22, Almaty', '2026-04-05 09:00:00'),
-('Symbat', 'Kadirgali', 'dima.p@example.kz', '+77471115599', 'Tole Bi 104, Almaty', '2026-05-10 16:45:00'),
+('Saida', 'Askarova', 'saida.askarova@example.kz', '+77011112233', 'Abay Ave 45, Almaty', '2026-02-15 10:00:00'),
+('Dana', 'Serikova', 'dana.serikova@example.kz', '+77023334455', 'Mangilik El 12, Astana', '2026-03-01 11:30:00'),
+('Beknaz', 'Turegalieva', 'beknaz.t@example.kz', '+77056667788', 'Kabanbay Batyr 8, Astana', '2026-03-20 14:15:00'),
+('Aigerim', 'Muratova', 'aigerim.m@example.kz', '+77078889900', 'Satpayev St 22, Almaty', '2026-04-05 09:00:00'),
+('Symbat', 'Kadirgali', 'symbat.k@example.kz', '+77471115599', 'Tole Bi 104, Almaty', '2026-05-10 16:45:00'),
 ('Zarina', 'Kalykova', 'zarina.k@example.kz', '+77085554433', 'Dostyk Ave 10, Almaty', '2026-05-12 11:00:00');
 
 -- Products Table expanded to 12 items to satisfy 10+ largest table condition
@@ -154,56 +146,56 @@ insert into public.products (category_id, product_name, sku, unit_price, stock_q
 ((select category_id from public.categories where category_name = 'Tools'), 'Eye Brush Set', 'TOOL-BRUSH02', 8900.00, 30);
 
 insert into public.orders (customer_id, order_date, status) values
-((select customer_id from public.customers where email = 'ali.askarov@example.kz'), '2026-03-05 12:00:00', 'delivered'),
-((select customer_id from public.customers where email = 'dana.s@example.kz'), '2026-03-10 15:30:00', 'delivered'),
-((select customer_id from public.customers where email = 'ivan.ivanov@example.kz'), '2026-04-12 18:20:00', 'shipped'),
-((select customer_id from public.customers where email = 'aiga.m@example.kz'), '2026-05-01 10:15:00', 'processing'),
-((select customer_id from public.customers where email = 'dima.p@example.kz'), '2026-05-20 14:00:00', 'cancelled'),
+((select customer_id from public.customers where email = 'saida.askarova@example.kz'), '2026-03-05 12:00:00', 'delivered'),
+((select customer_id from public.customers where email = 'dana.serikova@example.kz'), '2026-03-10 15:30:00', 'delivered'),
+((select customer_id from public.customers where email = 'beknaz.t@example.kz'), '2026-04-12 18:20:00', 'shipped'),
+((select customer_id from public.customers where email = 'aigerim.m@example.kz'), '2026-05-01 10:15:00', 'processing'),
+((select customer_id from public.customers where email = 'symbat.k@example.kz'), '2026-05-20 14:00:00', 'cancelled'),
 ((select customer_id from public.customers where email = 'zarina.k@example.kz'), '2026-05-22 09:30:00', 'pending');
 
 insert into public.order_items (order_id, product_id, quantity, discount_amount) values
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ali.askarov@example.kz' and o.order_date = '2026-03-05 12:00:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'saida.askarova@example.kz' and o.order_date = '2026-03-05 12:00:00'),
     (select product_id from public.products where sku = 'SKIN-CREAM01'), 1, 500.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ali.askarov@example.kz' and o.order_date = '2026-03-05 12:00:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'saida.askarova@example.kz' and o.order_date = '2026-03-05 12:00:00'),
     (select product_id from public.products where sku = 'BODY-SCRUB01'), 2, 0.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.s@example.kz' and o.order_date = '2026-03-10 15:30:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.serikova@example.kz' and o.order_date = '2026-03-10 15:30:00'),
     (select product_id from public.products where sku = 'SKIN-SERUM02'), 1, 0.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.s@example.kz' and o.order_date = '2026-03-10 15:30:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.serikova@example.kz' and o.order_date = '2026-03-10 15:30:00'),
     (select product_id from public.products where sku = 'MAKE-LIP01'), 1, 200.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ivan.ivanov@example.kz' and o.order_date = '2026-04-12 18:20:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'beknaz.t@example.kz' and o.order_date = '2026-04-12 18:20:00'),
     (select product_id from public.products where sku = 'FRAG-PERF01'), 1, 3000.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ivan.ivanov@example.kz' and o.order_date = '2026-04-12 18:20:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'beknaz.t@example.kz' and o.order_date = '2026-04-12 18:20:00'),
     (select product_id from public.products where sku = 'HAIR-SHAM01'), 1, 0.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aiga.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aigerim.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
     (select product_id from public.products where sku = 'MAKE-FOUND02'), 1, 0.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aiga.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aigerim.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
     (select product_id from public.products where sku = 'FRAG-MIST02'), 1, 500.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dima.p@example.kz' and o.order_date = '2026-05-20 14:00:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'symbat.k@example.kz' and o.order_date = '2026-05-20 14:00:00'),
     (select product_id from public.products where sku = 'HAIR-MASK02'), 1, 0.00
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dima.p@example.kz' and o.order_date = '2026-05-20 14:00:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'symbat.k@example.kz' and o.order_date = '2026-05-20 14:00:00'),
     (select product_id from public.products where sku = 'BODY-LOTION02'), 1, 0.00
 );
 
--- INSERT ... SELECT: Marketing promotion gifting a Blending Sponge on Haircare product orders.
+-- MARKETING PROMOTION SELECT INSERT
 insert into public.order_items (order_id, product_id, quantity, discount_amount)
 select 
     o.order_id, 
@@ -216,22 +208,22 @@ join public.products p on oi.product_id = p.product_id
 where p.category_id = (select category_id from public.categories where category_name = 'Haircare')
 on conflict (order_id, product_id) do nothing;
 
--- 6th Table Data Population via Subqueries
+-- PAYMENTS POPULATION
 insert into public.payments (order_id, payment_date, amount, payment_method) values
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ali.askarov@example.kz' and o.order_date = '2026-03-05 12:00:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'saida.askarova@example.kz' and o.order_date = '2026-03-05 12:00:00'),
     '2026-03-05 12:05:00', 21800.00, 'card'
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.s@example.kz' and o.order_date = '2026-03-10 15:30:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'dana.serikova@example.kz' and o.order_date = '2026-03-10 15:30:00'),
     '2026-03-10 15:32:00', 23300.00, 'qr_code'
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'ivan.ivanov@example.kz' and o.order_date = '2026-04-12 18:20:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'beknaz.t@example.kz' and o.order_date = '2026-04-12 18:20:00'),
     '2026-04-12 18:25:00', 38500.00, 'card'
 ),
 (
-    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aiga.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
+    (select order_id from public.orders o join public.customers c on o.customer_id = c.customer_id where c.email = 'aigerim.m@example.kz' and o.order_date = '2026-05-01 10:15:00'),
     '2026-05-01 10:18:00', 21000.00, 'card'
 ),
 (
@@ -239,15 +231,13 @@ insert into public.payments (order_id, payment_date, amount, payment_method) val
     '2026-05-22 09:35:00', 5000.00, 'cash'
 );
 
--- SECTION 7: DATA UPDATES (WITH EXPLICIT BUSINESS RATIONALE)
-
+-- SECTION 7: DATA UPDATES 
 -- Update 1 (Simple): Loyalty retention bonus applied to customers who registered in Q1 of 2026.
 update public.customers
 set loyalty_points = loyalty_points + 150
 where registration_date < '2026-04-01 00:00:00';
 
 -- Update 2 (Subquery): Strategic promotional campaign injecting a baseline discount on pending/processing makeup lines.
--- Оңтайландырылған Update 2 (UPDATE ... FROM синтаксисі қолданылды)
 update public.order_items oi
 set discount_amount = oi.discount_amount + (0.10 * p.unit_price)
 from public.products p
@@ -255,14 +245,13 @@ where oi.product_id = p.product_id
   and p.category_id = (select category_id from public.categories where category_name = 'Makeup')
   and oi.order_id in (select order_id from public.orders where status in ('pending', 'processing'));
 
--- SECTION 8: TRANSACTION CONTROL
+-- SECTION 8: TRANSACTION CONTROL 
 begin;
-delete from public.orders 
-where status = 'cancelled'
-returning order_id, customer_id, order_date, status;
+delete from public.order_items where order_id in (select order_id from public.orders where status = 'cancelled');
+delete from public.orders where status = 'cancelled' returning order_id, customer_id, order_date, status;
 rollback;
 
--- SECTION 9: DATA CONTROL LANGUAGE (DCL)
+-- SECTION 9: DATA CONTROL LANGUAGE (DCL РҰҚСАТТАР)
 grant select on all tables in schema public to cosmetics_readonly;
 grant insert, update on public.orders to cosmetics_writer;
 revoke update on public.orders from cosmetics_writer;
