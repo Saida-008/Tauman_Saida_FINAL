@@ -27,9 +27,9 @@ create table public.customers (
     last_name varchar(50) not null,
     full_name varchar(101) generated always as (first_name || ' ' || last_name) stored,
     email varchar(100) not null constraint uq_customer_email unique, -- Check Kind 1: UNIQUE
-    phone_number varchar(20) not null, -- Бастапқы сыйымдылық (ALTER арқылы 35-ке өседі)
+    phone_number varchar(20) not null, 
     delivery_address text not null, 
-    registration_date timestamp default now() not null, -- Meaningful DEFAULT
+    registration_date timestamp default now() not null, 
     constraint chk_registration_date check (registration_date > date '2026-01-01'), -- Check Kind 2: Date Threshold
     constraint chk_valid_phone_format check (phone_number ~ '^\+[0-9\s\-()]+$') -- Check Kind 3: Regular Expression
 );
