@@ -247,9 +247,12 @@ set loyalty_points = loyalty_points + 150
 where registration_date < '2026-04-01 00:00:00';
 
 -- Update 2 (Subquery): Strategic promotional campaign injecting a baseline discount on pending/processing makeup lines.
+-- Оңтайландырылған Update 2 (UPDATE ... FROM синтаксисі қолданылды)
 update public.order_items oi
-set discount_amount = oi.discount_amount + (0.10 * (select p.unit_price from public.products p where p.product_id = oi.product_id))
-where oi.product_id in (select product_id from public.products where category_id = (select category_id from public.categories where category_name = 'Makeup'))
+set discount_amount = oi.discount_amount + (0.10 * p.unit_price)
+from public.products p
+where oi.product_id = p.product_id
+  and p.category_id = (select category_id from public.categories where category_name = 'Makeup')
   and oi.order_id in (select order_id from public.orders where status in ('pending', 'processing'));
 
 -- SECTION 8: TRANSACTION CONTROL
