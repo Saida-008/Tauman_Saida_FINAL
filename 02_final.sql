@@ -246,12 +246,36 @@ where oi.product_id = p.product_id
   and oi.order_id in (select order_id from public.orders where status in ('pending', 'processing'));
 
 -- SECTION 8: TRANSACTION CONTROL 
-begin;
-delete from public.order_items where order_id in (select order_id from public.orders where status = 'cancelled');
-delete from public.orders where status = 'cancelled' returning order_id, customer_id, order_date, status;
-rollback;
+-- REASON FOR ROLLBACK: 
+-- This is a safety precaution to preview and verify the affected data before permanently 
+-- committing the deletions to the database. Running this as a simulation ensures that 
+-- the correct rows are targeted and allows us to inspect the returned metadata without data loss.
 
--- SECTION 9: DATA CONTROL LANGUAGE (DCL РҰҚСАТТАР)
-grant select on all tables in schema public to cosmetics_readonly;
-grant insert, update on public.orders to cosmetics_writer;
-revoke update on public.orders from cosmetics_writer;
+BEGIN;
+
+-- Step 1: Delete dependent items first to avoid foreign key violation errors
+DELETE FROM public.order_items 
+WHERE order_id IN (
+    SELECT order_id 
+    FROM public.orders 
+    WHERE status = 'cancelled'
+);
+
+-- Step 2: Delete the parent orders and return the deleted rows for verification
+DELETE FROM public.orders 
+WHERE status = 'cancelled' 
+RETURNING order_id, customer_id, order_date, status;
+
+-- Step 3: Roll back the transaction to undo the deletions and keep data safe
+ROLLBACK;
+
+
+-- SECTION 9: DATA CONTROL LANGUAGE 
+-- ROLE 1: cosmetics_readonly
+-- Purpose: Read-only access for analysts or reporting tools. Cannot modify data.
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO cosmetics_readonly;
+
+-- ROLE 2: cosmetics_writer
+-- Purpose: Data entry/modification role. UPDATE privilege is revoked for security.
+GRANT INSERT, UPDATE ON public.orders TO cosmetics_writer;
+REVOKE UPDATE ON public.orders FROM cosmetics_writer;
