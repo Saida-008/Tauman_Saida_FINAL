@@ -91,7 +91,7 @@ create table public.payments (
         references public.orders(order_id) on delete cascade
 );
 
--- SECTION 4: ALTER TABLE STATEMENTS (ҚҰРЫЛЫМДЫ ӨЗГЕРТУ)
+-- SECTION 4: ALTER TABLE STATEMENTS
 -- Alter 1: Increase structural capacity to safely handle long international phone strings.
 alter table public.customers alter column phone_number type varchar(35);
 -- Alter 2: Append marketing analytical attributes to fuel corporate CRM loyalty mechanics.
