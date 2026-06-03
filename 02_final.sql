@@ -61,7 +61,7 @@ create table orders (
     customer_id int not null,
     order_date timestamp default now() not null,
     status varchar(20) default 'pending' not null,
-    constraint chk_order_status check (status in ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
+    constraint chk_order_status check (status in ('pending', 'processing', 'shipped', 'delivered', 'cancelled')), -- Check Kind 5: Enumerated array
     constraint chk_order_date check (order_date > date '2026-01-01'),
     constraint fk_orders_customers foreign key (customer_id) 
         references customers(customer_id) on delete cascade 
